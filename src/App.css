@@ -1,0 +1,47 @@
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+
+#bg {
+  background-color: rgb(20, 20, 20);
+}
+#root {
+  color:aliceblue;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: rgb(20, 20, 20);
+}
+.muted{
+  color:darkgray;
+}
+
+.arrow{
+  filter: invert();
+  font-size: 0.8em;
+  color:gray;
+}
+.close{
+  height: 40px;
+  width: 40px;
+  color:gray;
+  background-color:transparent;
+  color: gray !important;
+}
+
+.Container {
+  padding: 1em;
+  border-radius: 4px;
+  background-color: rgb(25, 25, 25);
+  
+}
+.Card {
+  color:aliceblue;
+  padding: 1em;
+  border-radius: 4px;
+  border: rgb(31 41 55) 2px solid;
+  background-color: rgb(30, 30, 30);
+}
+.Card:hover{
+  background-color: rgb(40, 40, 40);
+
+}
+
