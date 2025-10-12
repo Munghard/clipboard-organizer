@@ -1,3 +1,6 @@
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+@import "tailwindcss";
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -14,6 +17,31 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+
+.button {
+  @apply text-white rounded-sm px-3 py-2 font-semibold transition-transform duration-150 ease-in-out;
+}
+
+/* variants */
+.button-danger {
+  @apply  bg-rose-700/80 border-pink-600 border-2 hover:bg-rose-600 hover:scale-110 active:scale-90;
+}
+.button-warning {
+  @apply  bg-yellow-700/80 border-amber-600 border-2 hover:bg-yellow-600 hover:scale-110 active:scale-90;
+}
+
+.button-primary {
+  @apply bg-blue-700/80 border-cyan-600 border-2 hover:bg-blue-600 hover:scale-110 active:scale-90;
+}
+
+.button-success {
+  @apply bg-green-700/80 border-lime-600 border-2 hover:bg-green-600 hover:scale-110 active:scale-90;
+}
+
+.button-secondary {
+  @apply bg-zinc-700/80 border-zinc-600 border-2 hover:bg-zinc-600 hover:scale-110 active:scale-90;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -24,9 +52,8 @@ a:hover {
 }
 
 body {
-  margin: 0;
   display: flex;
-  place-items: center;
+  /* place-items: center; */
   min-width: 320px;
   min-height: 100vh;
 }
@@ -36,24 +63,7 @@ h1 {
   line-height: 1.1;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
+
 
 @media (prefers-color-scheme: light) {
   :root {
