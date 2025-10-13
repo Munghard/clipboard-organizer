@@ -18,11 +18,15 @@
 }
 
 
+
 .button {
   @apply text-white rounded-sm px-3 py-2 font-semibold transition-transform duration-150 ease-in-out;
 }
 
 /* variants */
+.button-tags {
+  @apply  bg-purple-700/80 border-fuchsia-600 border-2 hover:bg-fuchsia-600 hover:scale-110 active:scale-90;
+}
 .button-danger {
   @apply  bg-rose-700/80 border-pink-600 border-2 hover:bg-rose-600 hover:scale-110 active:scale-90;
 }
