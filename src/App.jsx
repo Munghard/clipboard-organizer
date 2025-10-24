@@ -14,13 +14,8 @@ function App() {
 	});
 
 	const [folders, setFolders] = useState(() => {
-		const order = JSON.parse(localStorage.getItem('entry_order') || '[]');
-		const folderSet = new Set();
-		order.forEach(id => {
-			const entry = JSON.parse(localStorage.getItem(id) || '{}');
-			if (entry.folder) folderSet.add(entry.folder);
-		});
-		return Array.from(folderSet);
+		const folders = JSON.parse(localStorage.getItem('entry_folder') || '[]');
+		return Array.from(folders);
 	});
 
 	const [tags, setTags] = useState(() => {
@@ -46,8 +41,10 @@ function App() {
 	const [newFolderName, setNewFolderName] = useState('');
 	const [newTagName, setNewTagName] = useState('');
 
-	const [showFolders, setShowFolders] = useState(true);
-	const [showTags, setShowTags] = useState(true);
+	const [showExtras, setShowExtras] = useState(false);
+
+	const [showFolders, setShowFolders] = useState(false);
+	const [showTags, setShowTags] = useState(false);
 
 	const fileInputRef = useRef(null);
 
@@ -75,45 +72,45 @@ function App() {
 	const importData = (file) => {
 		const reader = new FileReader();
 		reader.onload = (e) => {
-		  try {
-			const imported = JSON.parse(e.target.result);
-	  
-			const newFoldersSet = new Set();
-			const newTagsSet = new Set();
-	  
-			Object.entries(imported).forEach(([id, entry]) => {
-			  localStorage.setItem(id, JSON.stringify(entry));
-	  
-			  if (entry.folder) newFoldersSet.add(entry.folder);
-	  
-			  if (Array.isArray(entry.tags)) {
-				entry.tags.forEach((t) => {
-				  if (typeof t === "string") newTagsSet.add(t);
-				  else if (t?.tagname) newTagsSet.add(t.tagname);
+			try {
+				const imported = JSON.parse(e.target.result);
+
+				const newFoldersSet = new Set();
+				const newTagsSet = new Set();
+
+				Object.entries(imported).forEach(([id, entry]) => {
+					localStorage.setItem(id, JSON.stringify(entry));
+
+					if (entry.folder) newFoldersSet.add(entry.folder);
+
+					if (Array.isArray(entry.tags)) {
+						entry.tags.forEach((t) => {
+							if (typeof t === "string") newTagsSet.add(t);
+							else if (t?.tagname) newTagsSet.add(t.tagname);
+						});
+					}
 				});
-			  }
-			});
-	  
-			// Save folders
-			localStorage.setItem("entry_folder", JSON.stringify(Array.from(newFoldersSet)));
-	  
-			// Save tags
-			localStorage.setItem(
-			  "tags",
-			  JSON.stringify(Array.from(newTagsSet).map((t) => ({ tagname: t })))
-			);
-	  
-			// Save order
-			localStorage.setItem("entry_order", JSON.stringify(Object.keys(imported)));
-	  
-			window.location.reload();
-		  } catch (err) {
-			console.error("Failed to import:", err);
-		  }
+
+				// Save folders
+				localStorage.setItem("entry_folder", JSON.stringify(Array.from(newFoldersSet)));
+
+				// Save tags
+				localStorage.setItem(
+					"tags",
+					JSON.stringify(Array.from(newTagsSet).map((t) => ({ tagname: t })))
+				);
+
+				// Save order
+				localStorage.setItem("entry_order", JSON.stringify(Object.keys(imported)));
+
+				window.location.reload();
+			} catch (err) {
+				console.error("Failed to import:", err);
+			}
 		};
 		reader.readAsText(file);
-	  };
-	  
+	};
+
 
 
 	const handleClick = () => {
@@ -178,8 +175,8 @@ function App() {
 	const addFolder = (name) => {
 		if (!name || folders.includes(name)) return;
 		const newFolders = [...folders, name];
-		setFolders(newFolders);
 		localStorage.setItem('entry_folder', JSON.stringify(newFolders));
+		setFolders(newFolders);
 	};
 
 	// Delete a folder
@@ -248,10 +245,7 @@ function App() {
 				<i className='fa fa-copy text-5xl text-zinc-400'></i> <p className="text-5xl text-zinc-400 mb-6">Clipboard Organizer</p>
 			</div>
 			{/*TOP BUTTONS */}
-			<div className="flex gap-2 mb-4">
-				<button className="button button-danger" onClick={clearAll}>
-					<i className='fa fa-trash'></i> Clear all
-				</button>
+			<div className="flex flex-wrap gap-2 mb-4">
 				<button
 					className="button button-primary"
 					onClick={() => setNewClipboardVisible(!newClipboardVisible)}
@@ -276,22 +270,39 @@ function App() {
 				>
 					<i className='fa fa-tag'></i> Tags
 				</button>
+
 				<button
 					className="button button-tags"
 					onClick={() => { setShowTags(!showTags) }}
 				>
 					<i className='fa fa-eye'></i>
 				</button>
-				<button
-					className="button button-secondary ms-auto"
-					onClick={() => exportData()}
-				>
-					<i className='fa fa-download'></i> Export
-				</button>
+				<div className='ms-auto flex gap-2'>
+					{showExtras &&
+						<button className="button button-danger" onClick={clearAll}>
+							<i className='fa fa-trash'></i> Clear all
+						</button>
+					}
+					{showExtras &&
+						<>
+							<button
+								className="button button-secondary"
+								onClick={() => exportData()}
+							>
+								<i className='fa fa-download'></i> Export
+							</button>
 
-				<button onClick={handleClick} className="button button-secondary">
-					<i className='fa fa-folder-open'></i> Import
-				</button>
+							<button onClick={handleClick} className="button button-secondary">
+								<i className='fa fa-folder-open'></i> Import
+							</button>
+						</>
+					}
+					<button
+						onClick={() => setShowExtras(!showExtras)}
+						className='button button-secondary'>
+						<i className='fa fa-bars'></i>
+					</button>
+				</div>
 				<input
 					type="file"
 					accept="application/json"
@@ -398,20 +409,22 @@ function App() {
 				<>
 					{/* SET FOLDER */}
 					<p className='text-md text-yellow-600 m-0 py-1'>Folders:</p>
-					<div className="flex gap-2 mb-4">
+					<div className="flex flex-wrap gap-2 mb-4">
 						<button className="button button-secondary" onClick={() => { setActiveFolder(''); setClipboardFolder("") }}>
 							All
 						</button>
 						{folders.map((f) => (
 							<div key={f} className="flex gap-1">
-								<button className="button button-warning" onClick={() => { setActiveFolder(f); setClipboardFolder(f) }}>
-									{f}
-								</button>
-								{editFolder &&
-									<button className="button button-danger" onClick={() => deleteFolder(f)}>
-										<i className="fa fa-trash"></i>
+								<div className='flex gap-1'>
+									<button className="button button-warning" onClick={() => { setActiveFolder(f); setClipboardFolder(f) }}>
+										{f}
 									</button>
-								}
+									{editFolder &&
+										<button className="button button-danger" onClick={() => deleteFolder(f)}>
+											<i className="fa fa-trash"></i>
+										</button>
+									}
+								</div>
 							</div>
 						))}
 					</div>
@@ -431,7 +444,7 @@ function App() {
 					)}
 					{displayedEntries.map((e) => (
 						<motion.div
-							className='flex'
+							className='flex flex-col'
 							initial={{ scale: 1, rotate: 0 }}
 							exit={{ scale: 0, rotate: 180 }}
 							transition={{ duration: 0.2 }}
@@ -441,15 +454,12 @@ function App() {
 
 							<Entry
 								key={e.id}
-								id={e.id}
-								data={e.data}
 								Entry={e}
 								DeleteEntry={deleteEntry}
 								EditEntry={editEntry}
+								EditTags={editTags}
 								EditFolder={editFolder}
-								Folder={e.folder}
 								Folders={folders}
-								tags={e.tags}
 								AllTags={tags}
 								AddTag={AddTag}
 								HandleChangeFolder={HandleChangeFolder}
