@@ -1,5 +1,4 @@
 const TagSelector = ({ Select, AddTag, Tags, SelectedTags }) => {
-
     const handleSelect = (e) => {
         if (e.key === "Enter" && e.target.value.trim() !== "") {
             AddTag(e.target.value.trim());
@@ -13,13 +12,13 @@ const TagSelector = ({ Select, AddTag, Tags, SelectedTags }) => {
 
             <div className="flex flex-wrap gap-1">
                 {Tags.map((tag) => {
+                    // SelectedTags is always an array of IDs
                     const isSelected = SelectedTags?.includes(tag.id);
-
                     return (
                         <button
                             key={tag.id}
                             className={`${isSelected ? "button-success" : "button-tags"} button`}
-                            onClick={() => Select(tag.id)}
+                            onClick={() => Select(tag)}
                         >
                             {tag.name}
                         </button>
@@ -29,6 +28,5 @@ const TagSelector = ({ Select, AddTag, Tags, SelectedTags }) => {
         </div>
     );
 };
-
 
 export default TagSelector;

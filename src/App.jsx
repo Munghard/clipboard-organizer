@@ -4,7 +4,10 @@ import Entry from './Entry';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient('https://beuklwmjpfhhsaxokdpy.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldWtsd21qcGZoaHNheG9rZHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMTc3MTcsImV4cCI6MjA3Njg5MzcxN30.vk6qztoJbK_2gvbCRNH7L4ZYLlrDUn9Zk8uFe9J6Bh0')
+const supabase = createClient(
+	import.meta.env.VITE_SUPABASE_URL,
+	import.meta.env.VITE_SUPABASE_ANON_KEY
+	);
 
 function App() {
 	// Load folders, tags and entries from localStorage on mount
@@ -12,7 +15,39 @@ function App() {
 	const [folders, setFolders] = useState([]);
 	const [tags, setTags] = useState([]);
 
+
 	useEffect(() => {
+		const handlePasteShortcut = (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+				e.preventDefault(); // optional: prevent default paste if needed
+				createNewEntryFromClipboard();
+			}
+		};
+
+		document.addEventListener('keydown', handlePasteShortcut);
+
+		return () => {
+			document.removeEventListener('keydown', handlePasteShortcut);
+		};
+	}, []);
+
+	const createNewEntryFromClipboard = async () => {
+		try {
+			const text = await navigator.clipboard.readText();
+			if (text) {
+				// create your entry here
+				setClipboardFolder(null);
+				setClipboardData(text);
+				addEntry(text);
+			}
+		} catch (err) {
+			console.error('Failed to read clipboard', err);
+		}
+	};
+
+
+	useEffect(() => {
+
 		const fetchData = async () => {
 			// Fetch userid
 			const { data: { user }, error } = await supabase.auth.getUser();
@@ -32,13 +67,22 @@ function App() {
 			// Fetch entries
 			const { data: entriesData, error: entriesError } = await supabase
 				.from('entries')
-				.select(`*, entry_tags(tags(name))`)
-				.eq('user_id', userId);
+				.select(`*, entry_tags(tags(id,name))`)
+				.eq('user_id', userId)
+				.order('created_at', { ascending: false });
+
+			const normalizedEntries = entriesData.map(entry => ({
+				...entry,
+				entry_tags: (entry.entry_tags || []).map(et => {
+					if (et.tags) return { id: et.tags.id, name: et.tags.name };
+					return et; // fallback if already flat
+				})
+			}));
 
 			if (entriesError) console.error(entriesError);
-			else setEntries(entriesData);
+			else setEntries(normalizedEntries);
 
-			console.log(entriesData);
+
 
 			// Fetch folders
 			const { data: foldersData, error: foldersError } = await supabase
@@ -48,7 +92,6 @@ function App() {
 			if (foldersError) console.error(foldersError);
 			else setFolders(foldersData);
 
-			console.log(foldersData);
 			// Fetch tags
 			const { data: tagsData, error: tagsError } = await supabase
 				.from('tags')
@@ -58,7 +101,6 @@ function App() {
 			else {
 				setTags(tagsData);
 			}
-			console.log(tagsData);
 		};
 
 		fetchData();
@@ -104,68 +146,64 @@ function App() {
 
 
 
-	const exportData = () => {
-		const order = JSON.parse(localStorage.getItem('entry_order') || '[]');
-		const entry_folder = JSON.parse(localStorage.getItem('entry_folder') || '[]');
+	const exportData = async () => {
+		try {
+			const { data: entries, error: entriesError } = await supabase.from('entries').select('*');
+			const { data: folders, error: foldersError } = await supabase.from('folders').select('*');
+			const { data: tags, error: tagsError } = await supabase.from('tags').select('*');
+			const { data: entryTags, error: entryTagsError } = await supabase.from('entry_tags').select('*');
 
-		const exportObj = { entry_folder };
+			if (entriesError || foldersError || tagsError || entryTagsError) {
+				throw new Error('Error fetching data for export');
+			}
 
-		order.forEach(id => {
-			const entry = JSON.parse(localStorage.getItem(id) || '{}');
-			exportObj[id] = entry; // entry contains {data, folder}
-		});
+			const exportObj = { entries, folders, tags, entry_tags: entryTags };
 
-		const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
-		const url = URL.createObjectURL(blob);
+			const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
 
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'clipboard-export.json';
-		a.click();
-		URL.revokeObjectURL(url);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'clipboard-export.json';
+			a.click();
+			URL.revokeObjectURL(url);
+
+		} catch (err) {
+			console.error('Failed to export data:', err);
+		}
 	};
 
-	const importData = (file) => {
+
+	const importData = async (file) => {
 		const reader = new FileReader();
-		reader.onload = (e) => {
+		reader.onload = async (e) => {
 			try {
 				const imported = JSON.parse(e.target.result);
+				const { folders, tags, entries, entry_tags } = imported;
 
-				const newFoldersSet = new Set();
-				const newTagsSet = new Set();
+				// 1. Insert folders
+				if (folders?.length) await supabase.from('folders').insert(folders);
 
-				Object.entries(imported).forEach(([id, entry]) => {
-					localStorage.setItem(id, JSON.stringify(entry));
+				// 2. Insert tags
+				if (tags?.length) await supabase.from('tags').insert(tags);
 
-					if (entry.folder) newFoldersSet.add(entry.folder);
+				// 3. Insert entries
+				if (entries?.length) await supabase.from('entries').insert(entries);
 
-					if (Array.isArray(entry.tags)) {
-						entry.tags.forEach((t) => {
-							if (typeof t === "string") newTagsSet.add(t);
-							else if (t?.tagname) newTagsSet.add(t.tagname);
-						});
-					}
-				});
+				// 4. Insert entry_tags
+				if (entry_tags?.length) await supabase.from('entry_tags').insert(entry_tags);
 
-				// Save folders
-				localStorage.setItem("entry_folder", JSON.stringify(Array.from(newFoldersSet)));
+				// 5. Optionally reload state
+				const { data: freshEntries } = await supabase.from('entries').select('*, entry_tags(tags(id,name))');
+				setEntries(freshEntries || []);
 
-				// Save tags
-				localStorage.setItem(
-					"tags",
-					JSON.stringify(Array.from(newTagsSet).map((t) => ({ tagname: t })))
-				);
-
-				// Save order
-				localStorage.setItem("entry_order", JSON.stringify(Object.keys(imported)));
-
-				window.location.reload();
 			} catch (err) {
-				console.error("Failed to import:", err);
+				console.error('Failed to import data:', err);
 			}
 		};
 		reader.readAsText(file);
 	};
+
 
 
 
@@ -179,7 +217,7 @@ function App() {
 
 
 	// Add a new entry
-	const addEntry = async () => {
+	const addEntry = async (text) => {
 
 		if (userId == "") {
 			console.log("Not logged in.")
@@ -187,8 +225,8 @@ function App() {
 		}
 
 		const newEntry = {
-			content: clipboardData,
-			folder_id: clipboardFolder.id || null
+			content: text,
+			folder_id: clipboardFolder?.id || null,
 		};
 
 		const { data, error } = await supabase
@@ -197,60 +235,69 @@ function App() {
 			.select();
 
 		if (error) {
-			console.error("shit the bed");
+			console.error("shit the bed:", error);
 			return;
 		}
 
 
-		setEntries([...entries, data[0]]);
+		setEntries(prevEntries => [data[0], ...prevEntries]);
 		setClipboardData('');
 		setClipboardFolder('');
 		setNewClipboardVisible(false);
 	};
 
 	// Edit an entry
-	const editEntry = async (id, newContent, tags) => {
-		// 1. Update local state
-		const updatedEntries = entries.map(e =>
-		  e.id === id ? { ...e, data: newContent, tags } : e
-		);
-		setEntries(updatedEntries);
-	  
-		// 2. Update Supabase entry
+	const editEntryContent = async (id, newContent) => {
+		// 1. Update only entry_tags in local state
+		setEntries(entries.map(e =>
+			e.id === id ? { ...e, content: newContent } : e
+		));
+
+		// 2. Update entry content
 		const { error } = await supabase
-		  .from('entries')
-		  .update({ content: newContent })
-		  .eq('id', id);
-	  
+			.from('entries')
+			.update({ content: newContent })
+			.eq('id', id);
 		if (error) console.error('Error updating entry:', error);
-	  
-		// 3. Update tags in entry_tags
-		// (Assuming tags is an array of tag ids)
-		// Delete old tags first
-		await supabase.from('entry_tags').delete().eq('entry_id', id);
-		// Insert new tags
-		
-		const tagInserts = (tags || []).map(tag_id => ({ entry_id: id, tag_id }));
-		if (tagInserts.length > 0) {
-		  const { error: tagsError } = await supabase.from('entry_tags').insert(tagInserts);
-		  if (tagsError) console.error('Error updating entry tags:', tagsError);
-		}
-		
-	  };
-	  
+
+	};
+
+	const editEntryTags = (id, tags) => {
+		// 1. Update local state immediately
+		setEntries(entries.map(e =>
+			e.id === id ? { ...e, entry_tags: tags } : e
+		));
+
+		// 2. Async DB update (fire and forget)
+		(async () => {
+			await supabase.from('entry_tags').delete().eq('entry_id', id);
+
+			if (tags.length > 0) {
+				const tagInserts = tags
+					.filter(t => t?.id != null)
+					.map(t => ({ entry_id: id, tag_id: t.id }));
+
+				if (tagInserts.length > 0) {
+					const { error } = await supabase.from('entry_tags').insert(tagInserts);
+					if (error) console.error('Error updating entry tags:', error);
+				}
+			}
+		})();
+	};
+
 
 	const HandleChangeFolder = async (id, folder_id) => {
 		// Update local state
 		const prevEntries = [...entries];
 		const updatedEntries = entries.map(e =>
-			e.id === id ? { ...e, folder_id:folder_id } : e
+			e.id === id ? { ...e, folder_id: folder_id } : e
 		);
 		setEntries(updatedEntries);
 
 		// Update in Supabase
 		const { error } = await supabase
 			.from('entries')
-			.update({ folder_id : folder_id })
+			.update({ folder_id: folder_id })
 			.eq('id', id);
 
 		if (error) {
@@ -266,14 +313,32 @@ function App() {
 
 
 	// Delete an entry
-	const deleteEntry = (id) => {
-		setEntries(entries.filter((e) => e.id !== id));
-		// localStorage.removeItem(id);
-		supabase.from('entries').delete().eq(id);
+	const deleteEntry = async (id) => {
+		// 1. Remove locally
+		setEntries(prev => prev.filter(e => e.id !== id));
 
-		const newOrder = entries.map(e => e.id).filter((eid) => eid !== id);
-		saveOrder(newOrder);
+		try {
+			// 2. Delete related tags first
+			const { error: tagsError } = await supabase
+				.from('entry_tags')
+				.delete()
+				.eq('entry_id', id);
+
+			if (tagsError) throw tagsError;
+
+			// 3. Delete entry
+			const { error: entryError } = await supabase
+				.from('entries')
+				.delete()
+				.eq('id', id);
+
+			if (entryError) throw entryError;
+
+		} catch (err) {
+			console.error('Error deleting entry:', err);
+		}
 	};
+
 
 	// Add a new folder
 	const addFolder = async (name) => {
@@ -324,35 +389,34 @@ function App() {
 	const AddTag = async (t) => {
 		// Fetch existing tags for this user
 		const { data: stored, error } = await supabase
-		  .from('tags')
-		  .select('*')
-		  .eq('user_id', userId);
-	  
+			.from('tags')
+			.select('*')
+			.eq('user_id', userId);
+
 		if (error) {
-		  console.error('Error fetching tags:', error);
-		  return;
+			console.error('Error fetching tags:', error);
+			return;
 		}
-	  
+
 		// Check if tag already exists (case-insensitive)
 		if (stored.some(tag => tag.name.toLowerCase() === t.toLowerCase())) return;
-	  
+
 		// Insert new tag into Supabase
 		const { data: newTag, error: insertError } = await supabase
-		  .from('tags')
-		  .insert([{ name: t, user_id: userId }])
-		  .select(); // returns inserted row
-	  
+			.from('tags')
+			.insert([{ name: t, user_id: userId }])
+			.select(); // returns inserted row
+
 		if (insertError) {
-		  console.error('Error inserting tag:', insertError);
-		  return;
+			console.error('Error inserting tag:', insertError);
+			return;
 		}
-	  
+
 		// Update local state and localStorage
 		const updated = [...stored, ...newTag];
 		setTags(updated);
-		localStorage.setItem("tags", JSON.stringify(updated));
-	  };
-	  
+	};
+
 
 	// Remove a tag by index
 	const RemoveTag = async (id) => {
@@ -361,51 +425,75 @@ function App() {
 
 		// Delete tag from Supabase
 		const { data, error } = await supabase
-		  .from('tags')
-		  .delete()
-		  .eq('id', id)
-		  .eq('user_id', userId);
-	  
+			.from('tags')
+			.delete()
+			.eq('id', id)
+			.eq('user_id', userId);
+
 		if (error) {
-		  console.error('Error deleting tag:', error);
-		  return;
+			console.error('Error deleting tag:', error);
+			return;
 		}
-	  
+
 		// Remove tag from local state
 		const updated = tags.filter(tag => tag.id !== id);
 		setTags(updated);
-	  
-		// Update localStorage
-		localStorage.setItem("tags", JSON.stringify(updated));
-	  };
-	  
 
-	// Clear all data
-	const clearAll = () => {
-		if (!window.confirm('Are you sure? This will clear all local data!')) return;
-		localStorage.clear();
-		setEntries([]);
-		setFolders([]);
-		setTags([]);
 	};
+
+
+	const clearAll = async () => {
+		if (!window.confirm('Are you sure? This will clear all data!')) return;
+
+		try {
+			// 1. Delete all entry_tags first (foreign key constraint)
+			let { error } = await supabase.from('entry_tags').delete().neq('entry_id', null);
+			if (error) throw error;
+
+			// 2. Delete all entries
+			({ error } = await supabase.from('entries').delete().neq('id', null));
+			if (error) throw error;
+
+			// 3. Delete all folders
+			({ error } = await supabase.from('folders').delete().neq('id', null));
+			if (error) throw error;
+
+			// 4. Delete all tags
+			({ error } = await supabase.from('tags').delete().neq('id', null));
+			if (error) throw error;
+
+			// 5. Clear local state
+			setEntries([]);
+			setFolders([]);
+			setTags([]);
+
+		} catch (err) {
+			console.error('Error clearing all data:', err);
+		}
+	};
+
 
 	// filter displayed entries
 	const displayedEntries = entries.filter(e =>
-		(!activeFolder || e.folder === activeFolder) &&
-		(!activeTag || e.entry_tags?.some(t => t.tags.name === activeTag))
+		(!activeFolder || e.folder_id === activeFolder) &&
+		(!activeTag || e.entry_tags?.some(t => t.id === activeTag))
 	);
 
-
-	
 
 	// --- JSX ---
 	return (
 		<div className="container">
 			<div className='flex  mb-2'>
-				<i className='fa fa-copy text-5xl text-zinc-400'></i> <p className="text-5xl text-zinc-400 mb-6">Clipboard Organizer</p>
+				<div className='flex'>
+
+					<p className="text-5xl text-zinc-400 mb-6 font-semibold">Pasteboard</p>
+					<i className='fa fa-copy text-3xl text-zinc-600'></i>
+				</div>
+				<div className='flex ms-auto'>
+					{userId && <p className='text-sm font-bold text-green-500'>Logged in as: {userName}</p>}
+				</div>
 			</div>
-			
-			{userId && <p className='text-sm font-bold text-green-500'>Logged in as: {userName}</p>}
+
 			{/*TOP BUTTONS */}
 			<div className="flex flex-wrap gap-2 mb-4">
 				<button
@@ -485,6 +573,12 @@ function App() {
 						placeholder="New tag name"
 						value={newTagName}
 						onChange={(e) => setNewTagName(e.target.value)}
+						onKeyDown={(k) => {
+							if (k.key === "Enter" && newTagName.trim() !== "") {
+								AddTag(newTagName);
+								setNewTagName("");
+							}
+						}}
 						className="p-2 border rounded"
 					/>
 					<button
@@ -505,6 +599,12 @@ function App() {
 						type="text"
 						placeholder="New folder name"
 						value={newFolderName}
+						onKeyDown={(k) => {
+							if (k.key === "Enter" && newFolderName.trim() !== "") {
+								addFolder(newFolderName);
+								setNewFolderName("");
+							}
+						}}
 						onChange={(e) => setNewFolderName(e.target.value)}
 						className="p-2 border rounded"
 					/>
@@ -536,13 +636,13 @@ function App() {
 						className="mb-2 p-2 border rounded bg-zinc-950"
 					>
 						<option value="">{activeFolder || "All"} </option>
-						{folders.map((f) => (
-							<option key={f.id} value={f.name}>
-								{f.name}
+						{folders.map((folder) => (
+							<option key={folder.id} value={folder.id}>
+								{folder.name}
 							</option>
 						))}
 					</select>
-					<button className="button button-success ms-2" onClick={addEntry}>
+					<button className="button button-success ms-2" onClick={() => addEntry(clipboardData)}>
 						<i className='fa fa-save'></i> Save
 					</button>
 				</div>
@@ -550,15 +650,14 @@ function App() {
 			{/* SET TAG */}
 			{showTags &&
 				<>
-
 					<p className='text-md text-purple-600 m-0 py-1'>Tags:</p>
 					<div className="flex flex-wrap gap-2 mb-4">
 						<button className="button button-secondary" onClick={() => { setActiveTag(''); setClipboardTag("") }}>
 							All
 						</button>
 						{tags.map((tag, index) => (
-							<div key={index} className="flex gap-1">
-								<button className="button button-tags" onClick={() => { setActiveTag(tag.id); setClipboardTag(tag.id) }}>
+							<div key={tag.id} className="flex gap-1">
+								<button className="button button-tags" onClick={(e) => { e.stopPropagation(); setActiveTag(tag.id); setClipboardTag(tag.id) }}>
 									{tag.name}
 								</button>
 								{editTags &&
@@ -580,7 +679,7 @@ function App() {
 							All
 						</button>
 						{folders.map((folder, index) => (
-							<div key={index} className="flex gap-1">
+							<div key={folder.id} className="flex gap-1">
 								<div className='flex gap-1'>
 									<button className="button button-warning" onClick={() => { setActiveFolder(folder.id); setClipboardFolder(folder.id) }}>
 										{folder.name}
@@ -596,6 +695,7 @@ function App() {
 					</div>
 				</>
 			}
+			<p className='text-md text-gray-400'>Showing: {folders.find(f => f.id === activeFolder)?.name || "All"}, Double click to open</p>
 			<motion.div className="grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2">
 				<AnimatePresence>
 					{displayedEntries.length === 0 && (
@@ -622,7 +722,8 @@ function App() {
 								key={entry.id}
 								Entry={entry}
 								DeleteEntry={deleteEntry}
-								EditEntry={editEntry}
+								EditEntryContent={editEntryContent}
+								EditEntryTags={editEntryTags}
 								EditTags={editTags}
 								EditFolder={editFolder}
 								Folders={folders}
