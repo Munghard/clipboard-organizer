@@ -67,13 +67,13 @@ const Entry = ({
 
     return (
         <>
-            {showBlowUp && <div className="absolute inset-0 bg-black/80 z-0 w-100 h-100">
+            {showBlowUp && <div className="absolute inset-0 bg-black/80 z-999 w-100 h-100">
             </div>}
 
             <motion.div
                 className={`p-2 bg-zinc-950 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 rounded-xl   
                     ${showBlowUp ?
-                        "absolute w-1/2 h-75 z-999 left-1/2 top-1/2 -translate-1/2" :
+                        "absolute sm:w-full md:w-3/4 lg:w-1/2 h-75 z-999 left-1/2 top-1/2 -translate-1/2" :
                         "relative min-w-32 min-h-50 max-w-lg z-auto"}  `}
                 layout
                 transition={{ layout: { duration: 0.3, type: "spring" } }}

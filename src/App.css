@@ -6,7 +6,13 @@
   width: 100%;
   color:aliceblue;
   padding: 2rem;
-  background-color: rgb(20, 20, 20);
+  /* background-color: rgb(20, 20, 20); */
+  background-image: repeating-linear-gradient(
+  0deg,           /* horizontal gradient = vertical stripes */
+  #222222 0 2px,
+  #0c0c0c 2px 4px
+);
+
 }
 .muted{
   color:darkgray;
