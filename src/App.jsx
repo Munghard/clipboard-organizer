@@ -641,7 +641,7 @@ function App() {
 						rows={3}
 					/>
 					<select
-						value={clipboardFolder}
+						value={clipboardFolder || ""}
 						onChange={(e) => setClipboardFolder(e.target.value)}
 						className="mb-2 p-2 border rounded bg-zinc-950"
 					>
