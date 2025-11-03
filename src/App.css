@@ -1,33 +1,33 @@
-
+@import "tailwindcss";
 #bg {
   background-color: rgb(20, 20, 20);
 }
+
 #root {
   width: 100%;
-  color:aliceblue;
+  color: aliceblue;
   padding: 2rem;
-  /* background-color: rgb(20, 20, 20); */
-  background-image: repeating-linear-gradient(
-  0deg,           /* horizontal gradient = vertical stripes */
-  #222222 0 2px,
-  #0c0c0c 2px 4px
-);
-
-}
-.muted{
-  color:darkgray;
+  /* background-image: repeating-linear-gradient(0deg,
+      #222222 0 2px,
+      #0c0c0c 2px 4px); */
+   @apply bg-zinc-900;
 }
 
-.arrow{
+.muted {
+  color: darkgray;
+}
+
+.arrow {
   filter: invert();
   font-size: 0.8em;
-  color:gray;
+  color: gray;
 }
-.close{
+
+.close {
   height: 40px;
   width: 40px;
-  color:gray;
-  background-color:transparent;
+  color: gray;
+  background-color: transparent;
   color: gray !important;
 }
 
@@ -35,11 +35,10 @@
   padding: 1em;
   border-radius: 4px;
   background-color: rgb(25, 25, 25);
-  
+
 }
 
-.Card:hover{
+.Card:hover {
   background-color: rgb(40, 40, 40);
 
 }
-

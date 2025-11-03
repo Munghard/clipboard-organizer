@@ -85,7 +85,7 @@ const Entry = ({
             </div>}
 
             <motion.div
-                className={`p-2 bg-zinc-950 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 rounded-xl   
+                className={`p-2 bg-zinc-950 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 rounded-xl shadow-md shadow-black
                     ${showBlowUp ?
                         "absolute h-75 z-999 left-1/2 top-1/2 -translate-1/2 w-fit " :
                         "relative min-w-32 min-h-50 max-w-lg z-auto"}  `}
@@ -176,7 +176,7 @@ const Entry = ({
                 {(EditFolder || selectFolder) &&
                     <div className="mb-4">
                         <p className="text-gray-400 ">Folder</p>
-                        <select onClick={(e) => e.stopPropagation()} onChange={(e) => { HandleChangeFolder(Entry.id, e.target.value) }} value={Entry.folder_id} className="bg-yellow-800 rounded-sm me-auto px-2 py-1 !text-xl">
+                        <select onClick={(e) => e.stopPropagation()} onChange={(e) => { HandleChangeFolder(Entry.id, e.target.value) }} value={Entry.folder_id || "None"} className="bg-yellow-800 rounded-sm me-auto px-2 py-1 !text-xl">
                             <option value={null}>None</option>
                             {Folders.map((folder, index) => {
                                 return <option key={index} value={folder.id}>{folder.name}</option>

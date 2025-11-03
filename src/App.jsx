@@ -15,10 +15,16 @@ function App() {
 	const [folders, setFolders] = useState([]);
 	const [tags, setTags] = useState([]);
 
+	// this has to be above useEffect because its used in the dependency array to make the override work, it reruns when newclipboardvisible changes
+	const [newClipboardVisible, setNewClipboardVisible] = useState(false);
 
 	useEffect(() => {
 		const handlePasteShortcut = (e) => {
 			if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+				if(newClipboardVisible)
+				{
+					return;
+				}
 				e.preventDefault(); // optional: prevent default paste if needed
 				createNewEntryFromClipboard();
 			}
@@ -29,7 +35,7 @@ function App() {
 		return () => {
 			document.removeEventListener('keydown', handlePasteShortcut);
 		};
-	}, []);
+	}, [newClipboardVisible]);
 
 	const createNewEntryFromClipboard = async () => {
 		try {
@@ -103,7 +109,6 @@ function App() {
 				setTags(tagsData);
 			}
 		};
-
 		fetchData();
 	}, []);
 
@@ -129,36 +134,38 @@ function App() {
 		}
 	}
 
-
+	// USER
 	const [userName, setUserName] = useState(null);
 	const [userId, setUserId] = useState(null);
 	const [avatarUrl, setAvatarUrl] = useState(null);
 
-	const [activeFolder, setActiveFolder] = useState('');
-	const [activeTag, setActiveTag] = useState('');
 
-	const [newClipboardVisible, setNewClipboardVisible] = useState(false);
-
-	const [editFolder, setEditFolder] = useState(false);
-
-	const [editTags, setEditTags] = useState(false);
+	// CLIPBOARD
 	const [clipboardData, setClipboardData] = useState('');
-
+	
 	const [clipboardFolder, setClipboardFolder] = useState(null);
-
-	const [newFolderName, setNewFolderName] = useState('');
-	const [newTagName, setNewTagName] = useState('');
-
+	
+	
+	// HAMBURGER MENU
 	const [showExtras, setShowExtras] = useState(false);
-
-	const [showFolders, setShowFolders] = useState(false);
-	const [showTags, setShowTags] = useState(false);
-
+	
+	// ???
 	const fileInputRef = useRef(null);
-
+	
+	
+	// FOLDERS
+	const [activeFolder, setActiveFolder] = useState('');
+	const [editFolder, setEditFolder] = useState(false);
+	const [newFolderName, setNewFolderName] = useState('');
+	const [showFolders, setShowFolders] = useState(false);
 	const [openEditFolder, setOpenEditFolder] = useState(false);
 	const [editableFolder, setEditableFolder] = useState(null);
-
+	
+	// TAGS
+	const [activeTag, setActiveTag] = useState('');
+	const [editTags, setEditTags] = useState(false);
+	const [newTagName, setNewTagName] = useState('');
+	const [showTags, setShowTags] = useState(false);
 	const [openEditTag, setOpenEditTag] = useState(false);
 	const [editableTag, setEditableTag] = useState(null);
 
@@ -508,7 +515,7 @@ function App() {
 		}
 	};
 
-
+	
 	// filter displayed entries
 	const displayedEntries = entries.filter(e =>
 		(!activeFolder || e.folder_id === activeFolder) &&
@@ -523,14 +530,14 @@ function App() {
 			<div className='flex  mb-2'>
 				<div className='flex'>
 
-					<p className="text-5xl text-zinc-400 mb-6 font-semibold">Pasteboard</p>
+					<p className="text-5xl text-zinc-400 mb-6 font-semibold ">Pasteboard</p>
 					<i className='fa fa-copy text-3xl text-zinc-600'></i>
 				</div>
 				<div className='flex ms-auto'>
 					{userId &&
 						<div className='flex gap-2'>
-							<p className='text-sm font-bold hidden lg:block md:block text-green-500'>Logged in as: {userName}</p>
-							<img className='h-12 w-12 rounded-4xl lg:ms-auto md:ms-auto' src={avatarUrl}></img>
+							<p className='text-sm font-bold hidden lg:block md:block text-green-500 h-fit'>Logged in as: {userName}</p>
+							<img className='h-12 w-12 rounded-4xl lg:ms-auto md:ms-auto border-2 border-green-500' src={avatarUrl}></img>
 						</div>
 					}
 					{!userId && <p className='text-sm font-bold text-red-500'>Log in to use the app</p>}
@@ -645,7 +652,7 @@ function App() {
 						onChange={(e) => setClipboardFolder(e.target.value)}
 						className="mb-2 p-2 border rounded bg-zinc-950"
 					>
-						<option value="">{activeFolder || "All"} </option>
+						<option value="">{"All"} </option>
 						{folders.map((folder) => (
 							<option key={folder.id} value={folder.id}>
 								{folder.name}
@@ -694,7 +701,7 @@ function App() {
 						</button>
 						{tags.map((tag, index) => (
 							<div key={tag.id} className="flex gap-1">
-								<button className="button button-tags" onClick={(e) => { e.stopPropagation(); setActiveTag(tag.id); }}>
+								<button className={`button ${activeTag === tag.id ? 'button-success': 'button-tags'}`} onClick={(e) => { e.stopPropagation(); setActiveTag(tag.id); }}>
 									{tag.name}
 								</button>
 								{editTags &&
@@ -776,7 +783,7 @@ function App() {
 						{folders.map((folder, index) => (
 							<div key={folder.id} className="flex gap-1">
 								<div className='flex gap-1'>
-									<button className="button button-warning" onClick={() => { !openEditFolder && setActiveFolder(folder.id); setClipboardFolder(folder.id) }}>
+									<button className={`button ${activeFolder === folder.id ? 'button-success': 'button-warning'}`} onClick={() => { !openEditFolder && setActiveFolder(folder.id); setClipboardFolder(folder.id) }}>
 										<>{folder.name}</>
 									</button>
 									{editFolder &&
@@ -824,7 +831,7 @@ function App() {
 			{userId &&
 				<>
 
-					<p className='text-md text-gray-400'>Showing: {folders.find(f => f.id === activeFolder)?.name || "All"}, Double click to open</p>
+					<p className='text-md text-gray-400'>Folder: {folders.find(f => f.id === activeFolder)?.name || "All"}, Tag: {tags.find(t => t.id === activeTag)?.name || 'All'}, Double click to open</p>
 					<motion.div className="grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2">
 						<AnimatePresence>
 							{displayedEntries.length === 0 && (
@@ -833,6 +840,7 @@ function App() {
 									initial={{ opacity: 0, scaleY: 0 }}
 									animate={{ opacity: 1, scaleY: 1 }}
 									exit={{ opacity: 0, scale: 0 }}
+									
 								>
 									No clipboards in this folder.
 								</motion.p>
