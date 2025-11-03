@@ -10,7 +10,6 @@
   /* background-image: repeating-linear-gradient(0deg,
       #222222 0 2px,
       #0c0c0c 2px 4px); */
-   @apply bg-zinc-900;
 }
 
 .muted {

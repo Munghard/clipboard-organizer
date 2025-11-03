@@ -3,6 +3,7 @@ import './App.css';
 import Entry from './Entry';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js'
+import ThemeSelector from './ThemeSelector';
 
 const supabase = createClient(
 	import.meta.env.VITE_SUPABASE_URL,
@@ -603,9 +604,12 @@ function App() {
 											<i className='fa fa-download'></i> Export
 										</button>
 
+
 										<button onClick={handleClick} className="button button-secondary">
 											<i className='fa fa-folder-open'></i> Import
 										</button>
+
+										{/* <ThemeSelector/> */}
 									</>
 
 								}
