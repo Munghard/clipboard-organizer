@@ -1,18 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useContext } from "react";
 import TagSelector from "./TagSelector"
+import { ClipboardContext } from "./ClipBoardContext";
+import { FoldersContext } from "./FoldersContext";
+import { TagsContext } from "./TagsContext";
 
 const Entry = ({
-    Entry,
-    DeleteEntry,
-    EditEntryContent,
-    EditEntryTags,
-    EditFolder,
-    Folders,
-    HandleChangeFolder,
-    AllTags,
-    AddTag,
-    EditTags
+    entry,
 }) => {
 
     const [copied, setCopied] = useState(false);
@@ -25,28 +19,21 @@ const Entry = ({
     const [showBlowUp, setShowBlowUp] = useState(false);
     const [lastScroll, setLastScroll] = useState(0);
 
+    const {HandleChangeFolder,editEntryContent,deleteEntry} = useContext(ClipboardContext);
+    const {editFolder, folders}  = useContext(FoldersContext);
+    const {editTags }  = useContext(TagsContext);
+
     useEffect(() => {
-        if (!startEdit) setEditValue(Entry.content);
-    }, [Entry.content, startEdit]);
+        if (!startEdit) setEditValue(entry.content);
+    }, [entry.content, startEdit]);
 
 
     const CopyEntry = (e) => {
         if (e.button === 0) {
-            navigator.clipboard.writeText(Entry.data);
+            navigator.clipboard.writeText(entry.data);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         }
-    };
-
-
-    const SelectTag = (tag) => {
-        const entryTags = Entry.entry_tags || []; // array of {id, name}
-        const exists = entryTags.some(t => t.id === tag.id);
-        const newTags = exists
-            ? entryTags.filter(t => t.id !== tag.id) // remove
-            : [...entryTags, { id: tag.id, name: tag.name }]; // add
-
-        EditEntryTags(Entry.id, newTags);
     };
 
 
@@ -75,7 +62,7 @@ const Entry = ({
         }
     }, [editValue]);
 
-    const entryDateFormated = new Date(Entry.created_at).toLocaleString(navigator.language);
+    const entryDateFormated = new Date(entry.created_at).toLocaleString(navigator.language);
     return (
         <>
             {showBlowUp && <div className="absolute inset-0 bg-black/80 z-999 w-100 h-100"
@@ -106,7 +93,7 @@ const Entry = ({
                             initial={{ scaleY: 0 }}
                             animate={{ scaleY: 1 }}
                             className="flex gap-2 place-content-between origin-top bg-zinc-800 rounded-md  inset-x-2 mb-5">
-                            <button className="btn btn-sm close" title="Delete" onClick={() => { if (confirm("Are you sure you want to delete this?")) { DeleteEntry(Entry.id); } }}>
+                            <button className="btn btn-sm close" title="Delete" onClick={() => { if (confirm("Are you sure you want to delete this?")) { deleteEntry(entry.id); } }}>
                                 <i className="fa fa-trash"></i>
                             </button>
                             <button className={`btn btn-sm close`} title="Edit" onClick={(e) => { e.stopPropagation(); setStartEdit(true) }}>
@@ -144,12 +131,12 @@ const Entry = ({
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => {
-                                EditEntryContent(Entry.id, editValue);
+                                editEntryContent(entry.id, editValue);
                                 setStartEdit(false);
                             }}
                             onKeyDown={(k) => {
                                 if (k.key === "Enter" && !k.shiftKey) {
-                                    EditEntryContent(Entry.id, editValue);
+                                    editEntryContent(entry.id, editValue);
                                     setStartEdit(false);
                                 }
                                 if (k.key === "Escape") {
@@ -161,7 +148,7 @@ const Entry = ({
                             rows={3}
                         />
                     ) : (
-                        <p className={`text-gray-300 text-xl w-full min-h-[80px] ${showBlowUp ? 'max-h-200' : 'max-h-40'} overflow-y-auto whitespace-pre-wrap break-words`}>{Entry.content}</p>
+                        <p className={`text-gray-300 text-xl w-full min-h-[80px] ${showBlowUp ? 'max-h-200' : 'max-h-40'} overflow-y-auto whitespace-pre-wrap break-words`}>{entry.content}</p>
                     )}
 
                     {copied && (
@@ -171,25 +158,19 @@ const Entry = ({
                     )}
                 </div>
                 {showBlowUp && <p className="text-gray-500">Created: {entryDateFormated}</p>}
-                {(EditFolder || selectFolder) &&
+                {(editFolder || selectFolder) &&
                     <div className="mb-4">
                         <p className="text-gray-400 ">Folder</p>
-                        <select onClick={(e) => e.stopPropagation()} onChange={(e) => { HandleChangeFolder(Entry.id, e.target.value) }} value={Entry.folder_id || "None"} className="bg-yellow-800 rounded-sm me-auto px-2 py-1 !text-xl">
+                        <select onClick={(e) => e.stopPropagation()} onChange={(e) => { HandleChangeFolder(entry.id, e.target.value) }} value={entry.folder_id || "None"} className="bg-yellow-800 rounded-sm me-auto px-2 py-1 !text-xl">
                             <option value={""}>None</option>
-                            {Folders.map((folder) => {
+                            {folders.map((folder) => {
                                 return <option key={folder.id} value={folder.id}>{folder.name}</option>
                             })}
                         </select>
                     </div>
                 }
-                {(selectTag || EditTags) &&
-                    <TagSelector
-                        Tags={AllTags}
-                        AddTag={AddTag}
-                        Select={SelectTag}
-                        // Pass array of tag IDs
-                        SelectedTags={(Entry.entry_tags || []).map(t => t.id)}
-                    />
+                {(selectTag || editTags) &&
+                    <TagSelector entry={entry}/>
                 }
                 {startEdit && <p className="text-gray-400 text-center">Hit Enter or escape to stop editing.</p>}
                 {/* <h1>{Entry.id}</h1> */}
