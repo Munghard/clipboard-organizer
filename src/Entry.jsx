@@ -75,7 +75,7 @@ const Entry = ({
         }
     }, [editValue]);
 
-
+    const entryDateFormated = new Date(Entry.created_at).toLocaleString(navigator.language);
     return (
         <>
             {showBlowUp && <div className="absolute inset-0 bg-black/80 z-999 w-100 h-100"
@@ -83,7 +83,6 @@ const Entry = ({
                 // onTap={handleCloseModal}
             >
             </div>}
-
             <motion.div
                 id="entry"
                 className={`p-2 dark:bg-zinc-950 light:bg-zinc-100 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 rounded-xl shadow-md shadow-black
@@ -138,10 +137,7 @@ const Entry = ({
                         if (startEdit || true) return; // remove true to enable copying by clicking the element
                         if (e.target.tagName === "BUTTON" || e.target.closest("button") || e.target.tagName === "SELECT") return;
                         CopyEntry(e);
-                    }}
-                >
-
-
+                    }}>
                     {startEdit ? (
                         <textarea
                             type="text"
@@ -174,13 +170,14 @@ const Entry = ({
                         </div>
                     )}
                 </div>
+                {showBlowUp && <p className="text-gray-500">Created: {entryDateFormated}</p>}
                 {(EditFolder || selectFolder) &&
                     <div className="mb-4">
                         <p className="text-gray-400 ">Folder</p>
                         <select onClick={(e) => e.stopPropagation()} onChange={(e) => { HandleChangeFolder(Entry.id, e.target.value) }} value={Entry.folder_id || "None"} className="bg-yellow-800 rounded-sm me-auto px-2 py-1 !text-xl">
-                            <option value={null}>None</option>
-                            {Folders.map((folder, index) => {
-                                return <option key={index} value={folder.id}>{folder.name}</option>
+                            <option value={""}>None</option>
+                            {Folders.map((folder) => {
+                                return <option key={folder.id} value={folder.id}>{folder.name}</option>
                             })}
                         </select>
                     </div>

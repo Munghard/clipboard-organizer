@@ -11,7 +11,7 @@ const supabase = createClient(
 );
 
 function App() {
-	// Load folders, tags and entries from localStorage on mount
+	// Load folders, tags and entries from supabase
 	const [entries, setEntries] = useState([]);
 	const [folders, setFolders] = useState([]);
 	const [tags, setTags] = useState([]);
@@ -22,11 +22,10 @@ function App() {
 	useEffect(() => {
 		const handlePasteShortcut = (e) => {
 			if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-				if(newClipboardVisible)
-				{
+				if (newClipboardVisible) {
 					return;
 				}
-				e.preventDefault(); // optional: prevent default paste if needed
+				e.preventDefault(); // prevent default paste if needed
 				createNewEntryFromClipboard();
 			}
 		};
@@ -42,7 +41,7 @@ function App() {
 		try {
 			const text = await navigator.clipboard.readText();
 			if (text) {
-				// create your entry here
+				// create entry
 				setClipboardFolder(null);
 				setClipboardData(text);
 				addEntry(text);
@@ -56,7 +55,7 @@ function App() {
 	useEffect(() => {
 
 		const fetchData = async () => {
-			// Fetch userid
+			// Fetch userid, user name and avatar from google
 			const { data: { user }, error } = await supabase.auth.getUser();
 			if (error) {
 				console.error(error);
@@ -72,13 +71,14 @@ function App() {
 
 
 			if (userId == null) return;
-			// Fetch entries
+			// Fetch entries from supabase with userid
 			const { data: entriesData, error: entriesError } = await supabase
 				.from('entries')
 				.select(`*, entry_tags(tags(id,name))`)
 				.eq('user_id', userId)
 				.order('created_at', { ascending: false });
-
+			
+			// Normalize nested data (probably not needed)
 			const normalizedEntries = entriesData.map(entry => ({
 				...entry,
 				entry_tags: (entry.entry_tags || []).map(et => {
@@ -143,17 +143,17 @@ function App() {
 
 	// CLIPBOARD
 	const [clipboardData, setClipboardData] = useState('');
-	
+
 	const [clipboardFolder, setClipboardFolder] = useState(null);
-	
-	
+
+
 	// HAMBURGER MENU
 	const [showExtras, setShowExtras] = useState(false);
-	
+
 	// ???
 	const fileInputRef = useRef(null);
-	
-	
+
+
 	// FOLDERS
 	const [activeFolder, setActiveFolder] = useState('');
 	const [editFolder, setEditFolder] = useState(false);
@@ -161,7 +161,7 @@ function App() {
 	const [showFolders, setShowFolders] = useState(false);
 	const [openEditFolder, setOpenEditFolder] = useState(false);
 	const [editableFolder, setEditableFolder] = useState(null);
-	
+
 	// TAGS
 	const [activeTag, setActiveTag] = useState('');
 	const [editTags, setEditTags] = useState(false);
@@ -253,7 +253,7 @@ function App() {
 
 		const newEntry = {
 			content: text,
-			folder_id: clipboardFolder?.id || null,
+			folder_id: clipboardFolder || null,
 		};
 
 		const { data, error } = await supabase
@@ -312,8 +312,8 @@ function App() {
 		})();
 	};
 
-
 	const HandleChangeFolder = async (id, folder_id) => {
+		if(folder_id === "") folder_id = null;
 		// Update local state
 		const prevEntries = [...entries];
 		const updatedEntries = entries.map(e =>
@@ -329,7 +329,7 @@ function App() {
 
 		if (error) {
 			console.error('Error updating entry folder:', error);
-			setEntries(prevEntries); // rollback
+			setEntries(prevEntries); // rollback on error
 			return;
 		}
 
@@ -345,7 +345,7 @@ function App() {
 		setEntries(prev => prev.filter(e => e.id !== id));
 
 		try {
-			// 2. Delete related tags first
+			// 2. Delete related entry_tags first
 			const { error: tagsError } = await supabase
 				.from('entry_tags')
 				.delete()
@@ -399,22 +399,30 @@ function App() {
 		const newFolders = folders.map(f => f.id === id ? { ...f, name: value } : f);
 		setFolders(newFolders);
 	}
+
 	// Delete a folder
 	const deleteFolder = async (folderId) => {
 		// Remove from state
 		const newFolders = folders.filter(f => f.id !== folderId);
 		setFolders(newFolders);
+		
+		// Move entries from deleted folder to empty folder
+		const updatedEntries = entries.map(e =>
+			e.folder === folderId ? { ...e, folder: null } : e
+		);
+
+		const {ferror} = await supabase
+			.from('entries')
+			.update({folder_id: null})
+			.eq('folder_id', folderId);
+
+		if (ferror) console.error('Error setting entry folder to null:', error);
+
+		setEntries(updatedEntries);
 
 		// Delete folder in Supabase
 		const { error } = await supabase.from('folders').delete().eq('id', folderId);
 		if (error) console.error('Error deleting folder:', error);
-
-		// Move entries from deleted folder to empty folder
-		const updatedEntries = entries.map(e =>
-			e.folder === folderId ? { ...e, folder: '' } : e
-		);
-		setEntries(updatedEntries);
-
 	};
 
 
@@ -516,7 +524,7 @@ function App() {
 		}
 	};
 
-	
+
 	// filter displayed entries
 	const displayedEntries = entries.filter(e =>
 		(!activeFolder || e.folder_id === activeFolder) &&
@@ -640,7 +648,7 @@ function App() {
 					className="hidden"
 				/>
 			</div>
-			
+
 			{/* NEW CLIPBOARD */}
 			{newClipboardVisible && (
 				<div className="mb-4 max-w-xl">
@@ -668,7 +676,7 @@ function App() {
 					</button>
 				</div>
 			)}
-			
+
 
 			{openEditTag &&
 				<>
@@ -699,13 +707,13 @@ function App() {
 			{showTags &&
 				<>
 					<p className='text-md text-purple-600 m-0 py-1'>Tags:</p>
-					<div className={`flex flex-wrap ${ editTags ?"gap-3":"gap-2"} mb-4`}>
-						<button className="button button-secondary" onClick={() => { setActiveTag('');}}>
+					<div className={`flex flex-wrap ${editTags ? "gap-3" : "gap-2"} mb-4`}>
+						<button className="button button-secondary" onClick={() => { setActiveTag(''); }}>
 							All
 						</button>
 						{tags.map((tag, index) => (
 							<div key={tag.id} className="flex gap-1">
-								<button className={`button ${activeTag === tag.id ? 'button-success': 'button-tags'}`} onClick={(e) => { e.stopPropagation(); setActiveTag(tag.id); }}>
+								<button className={`button ${activeTag === tag.id ? 'button-success' : 'button-tags'}`} onClick={(e) => { e.stopPropagation(); setActiveTag(tag.id); }}>
 									{tag.name}
 								</button>
 								{editTags &&
@@ -750,7 +758,7 @@ function App() {
 					</button>
 				</div>
 			}
-			
+
 			{openEditFolder &&
 				<>
 					<div className='bg-zinc-950 p-4 flex flex-col rounded-2xl border-zinc-800 border-2 w-fit'>
@@ -780,14 +788,14 @@ function App() {
 				<>
 					{/* SET FOLDER */}
 					<p className='text-md text-yellow-600 m-0 py-1'>Folders:</p>
-					<div className={`flex flex-wrap ${ editFolder ?"gap-3":"gap-2"} mb-4`}>
+					<div className={`flex flex-wrap ${editFolder ? "gap-3" : "gap-2"} mb-4`}>
 						<button className="button button-secondary" onClick={() => { setActiveFolder(''); setClipboardFolder("") }}>
 							All
 						</button>
 						{folders.map((folder, index) => (
 							<div key={folder.id} className="flex gap-1">
 								<div className='flex gap-1'>
-									<button className={`button ${activeFolder === folder.id ? 'button-success': 'button-warning'}`} onClick={() => { !openEditFolder && setActiveFolder(folder.id); setClipboardFolder(folder.id) }}>
+									<button className={`button ${activeFolder === folder.id ? 'button-success' : 'button-warning'}`} onClick={() => { !openEditFolder && setActiveFolder(folder.id); setClipboardFolder(folder.id) }}>
 										<>{folder.name}</>
 									</button>
 									{editFolder &&
@@ -844,7 +852,7 @@ function App() {
 									initial={{ opacity: 0, scaleY: 0 }}
 									animate={{ opacity: 1, scaleY: 1 }}
 									exit={{ opacity: 0, scale: 0 }}
-									
+
 								>
 									No clipboards in this folder.
 								</motion.p>
