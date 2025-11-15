@@ -19,9 +19,19 @@ const Entry = ({
     const [showBlowUp, setShowBlowUp] = useState(false);
     const [lastScroll, setLastScroll] = useState(0);
 
-    const {HandleChangeFolder,editEntryContent,deleteEntry} = useContext(ClipboardContext);
-    const {editFolder, folders}  = useContext(FoldersContext);
-    const {editTags }  = useContext(TagsContext);
+    const { HandleChangeFolder, editEntryContent, deleteEntry } = useContext(ClipboardContext);
+    const { editFolder, folders } = useContext(FoldersContext);
+    const { editTags } = useContext(TagsContext);
+
+    const [links, setLinks] = useState([]);
+
+    useEffect(() => {
+        if (entry.content) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const foundLinks = entry.content.match(urlRegex) || [];
+            setLinks(foundLinks);
+        }
+    }, [entry.content]);
 
     useEffect(() => {
         if (!startEdit) setEditValue(entry.content);
@@ -67,7 +77,7 @@ const Entry = ({
         <>
             {showBlowUp && <div className="absolute inset-0 bg-black/80 z-999 w-100 h-100"
                 onDoubleClick={handleCloseModal}
-                // onTap={handleCloseModal}
+            // onTap={handleCloseModal}
             >
             </div>}
             <motion.div
@@ -83,7 +93,7 @@ const Entry = ({
                 duration={{ duration: 1, type: "spring" }}
                 // onClick={() => setShowButtons(!showButtons)}
                 onDoubleClick={handleOpenModal}
-                // onTap={handleOpenModal}
+            // onTap={handleOpenModal}
             // onTap={() => setShowButtons(!showButtons)}
             >
                 {showButtons &&
@@ -148,7 +158,13 @@ const Entry = ({
                             rows={3}
                         />
                     ) : (
-                        <p className={`text-gray-300 text-xl w-full min-h-[80px] ${showBlowUp ? 'max-h-200' : 'max-h-40'} overflow-y-auto whitespace-pre-wrap break-words`}>{entry.content}</p>
+                        <>
+                            <p className={`text-gray-300 text-xl w-full min-h-[80px] ${showBlowUp ? 'max-h-200' : 'max-h-40'} overflow-y-auto whitespace-pre-wrap break-words`}>{entry.content}</p>
+                            {links &&
+                                links.map((link, index) =>
+                                    <a href={link}>Link {index + 1}</a>
+                                )}
+                        </>
                     )}
 
                     {copied && (
@@ -170,7 +186,7 @@ const Entry = ({
                     </div>
                 }
                 {(selectTag || editTags) &&
-                    <TagSelector entry={entry}/>
+                    <TagSelector entry={entry} />
                 }
                 {startEdit && <p className="text-gray-400 text-center">Hit Enter or escape to stop editing.</p>}
                 {/* <h1>{Entry.id}</h1> */}
@@ -180,3 +196,4 @@ const Entry = ({
 };
 
 export default Entry;
+
