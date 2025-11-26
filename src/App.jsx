@@ -384,40 +384,72 @@ function App() {
 			}
 			{userId &&
 				<>
+					<p className='text-md text-gray-400'>
+						Folder: {folders.find(f => f.id === activeFolder)?.name || "All"},
+						Tag: {tags.find(t => t.id === activeTag)?.name || 'All'}, Double click to open
+					</p>
 
-					<p className='text-md text-gray-400'>Folder: {folders.find(f => f.id === activeFolder)?.name || "All"}, Tag: {tags.find(t => t.id === activeTag)?.name || 'All'}, Double click to open</p>
-					<motion.div className="grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2">
+					<motion.div className="gap-2">
 						<AnimatePresence>
+
 							{displayedEntries.length === 0 && (
 								<motion.p
 									key="empty"
 									initial={{ opacity: 0, scaleY: 0 }}
 									animate={{ opacity: 1, scaleY: 1 }}
 									exit={{ opacity: 0, scale: 0 }}
-
 								>
 									No clipboards in this folder.
 								</motion.p>
 							)}
-							{entries && displayedEntries.map((entry) => (
-								<motion.div
-									className='flex flex-col'
-									initial={{ scale: 1, rotate: 0 }}
-									exit={{ scale: 0, rotate: 180 }}
-									transition={{ duration: 0.2 }}
-									layout
-									key={entry.id}
-								>
 
-									<Entry
-										key={entry.id}
-										entry={entry}
-									/>
-								</motion.div>
-							))}
+							{showFolders && (
+								folders.map((folder) => (
+									<div key={folder.id} className='gap-2'>
+										<div className='border-2 border-zinc-800 rounded-tr-2xl gap-2 bg-yellow-900 h-fit w-full my-2'>
+											<p className='text-md px-2 m-0 text-zinc-200 font-bold'>{folder.name}</p>
+										</div>
+
+										<div className='grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2'>
+											{entries && displayedEntries
+												.filter(e => e.folder_id === folder.id)
+												.map((entry) => (
+													<motion.div
+														className='flex flex-col'
+														initial={{ scale: 1, rotate: 0 }}
+														exit={{ scale: 0, rotate: 180 }}
+														transition={{ duration: 0.2 }}
+														layout
+														key={entry.id}>
+														<Entry entry={entry} />
+													</motion.div>
+												))}
+										</div>
+									</div>
+								))
+							)}
+
+							{!showFolders && (
+								<div className="grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2">
+									{entries && displayedEntries.map((entry) => (
+										<motion.div
+											className="flex flex-col"
+											initial={{ scale: 1, rotate: 0 }}
+											exit={{ scale: 0, rotate: 180 }}
+											transition={{ duration: 0.2 }}
+											layout
+											key={entry.id}
+										>
+											<Entry entry={entry} />
+										</motion.div>
+									))}
+								</div>
+							)}
+
 						</AnimatePresence>
 					</motion.div>
 				</>
+
 			}
 		</div>
 
