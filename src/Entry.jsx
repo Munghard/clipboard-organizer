@@ -19,19 +19,17 @@ const Entry = ({
     const [showBlowUp, setShowBlowUp] = useState(false);
     const [lastScroll, setLastScroll] = useState(0);
 
-    const { HandleChangeFolder, editEntryContent, deleteEntry } = useContext(ClipboardContext);
+    const { HandleChangeFolder, editEntryContent, deleteEntry, togglePinEntry } = useContext(ClipboardContext);
     const { editFolder, folders } = useContext(FoldersContext);
     const { editTags } = useContext(TagsContext);
 
-    const [links, setLinks] = useState([]);
 
-    useEffect(() => {
-        if (entry.content) {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            const foundLinks = entry.content.match(urlRegex) || [];
-            setLinks(foundLinks);
-        }
-    }, [entry.content]);
+    function linkify(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const foundLinks = entry.content.match(urlRegex) || [];
+        return text.replace(urlRegex, (url) => `<a href="${url}" class="text-blue-500 underline" target="_blank" rel="noopener noreferrer">${url}</a>`
+        );
+    };
 
     useEffect(() => {
         if (!startEdit) setEditValue(entry.content);
@@ -82,10 +80,11 @@ const Entry = ({
             </div>}
             <motion.div
                 id="entry"
-                className={`p-2 dark:bg-zinc-950 light:bg-zinc-100 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 rounded-xl shadow-md shadow-black
+                className={`p-2 dark:bg-zinc-950 light:bg-zinc-100 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 rounded-xl shadow-md shadow-black place-content-between
                     ${showBlowUp ?
                         "absolute h-75 z-999 left-1/2 top-1/2 -translate-1/2 w-fit " :
-                        "relative min-w-32 min-h-50 max-w-lg z-auto"}  `}
+                        "relative min-w-32 min-h-50 max-w-lg z-auto"}
+                        ${entry.pinned ? "border-red-800! hover:border-red-600!" : ""} `}
                 layout
                 transition={{ layout: { duration: 0.3, type: "spring" } }}
                 initial={{ y: -200, scaleY: 0, opacity: 0 }}
@@ -103,6 +102,9 @@ const Entry = ({
                             initial={{ scaleY: 0 }}
                             animate={{ scaleY: 1 }}
                             className="flex gap-2 place-content-between origin-top bg-zinc-800 rounded-md  inset-x-2 mb-5">
+                            <button className="btn btn-sm close" title="Pin" onClick={async () => { await togglePinEntry(entry.id) }}>
+                                <i className={`fa fa-thumbtack ${entry.pinned ? 'text-white' : 'text-gray-500'}`}></i>
+                            </button>
                             <button className="btn btn-sm close" title="Delete" onClick={() => { if (confirm("Are you sure you want to delete this?")) { deleteEntry(entry.id); } }}>
                                 <i className="fa fa-trash"></i>
                             </button>
@@ -159,11 +161,9 @@ const Entry = ({
                         />
                     ) : (
                         <>
-                            <p className={`text-gray-300 text-xl w-full min-h-[80px] ${showBlowUp ? 'max-h-200' : 'max-h-40'} overflow-y-auto whitespace-pre-wrap break-words`}>{entry.content}</p>
-                            {links &&
-                                links.map((link, index) =>
-                                    <a href={link}>Link {index + 1}</a>
-                                )}
+                            <p className={`text-gray-300 text-xl w-full min-h-[80px] ${showBlowUp ? 'max-h-200' : 'max-h-40'} overflow-y-auto whitespace-pre-wrap break-words`}
+                                dangerouslySetInnerHTML={{ __html: linkify(entry.content) }}>
+                            </p>
                         </>
                     )}
 
@@ -175,9 +175,13 @@ const Entry = ({
                 </div>
                 {showBlowUp && <p className="text-gray-500">Created: {entryDateFormated}</p>}
                 {(editFolder || selectFolder) &&
-                    <div className="mb-4">
-                        <p className="text-gray-400 ">Folder</p>
-                        <select onClick={(e) => e.stopPropagation()} onChange={(e) => { HandleChangeFolder(entry.id, e.target.value) }} value={entry.folder_id || "None"} className="bg-yellow-800 rounded-sm me-auto px-2 py-1 !text-xl">
+                    <div className="flex border-1 border-zinc-700  gap-2 p-2 rounded-md place-content-between">
+                        <p className="text-gray-400 m-0 font-bold">Folder:</p>
+                        <select
+                            className="bg-yellow-900 rounded-sm !text-md"
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => { HandleChangeFolder(entry.id, e.target.value) }}
+                            value={entry.folder_id || "None"}>
                             <option value={""}>None</option>
                             {folders.map((folder) => {
                                 return <option key={folder.id} value={folder.id}>{folder.name}</option>

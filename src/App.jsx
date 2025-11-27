@@ -73,6 +73,7 @@ function App() {
 		(!activeTag || e.entry_tags?.some(t => t.id === activeTag))
 	);
 
+	const visibleFolders = activeFolder ? folders.filter(f => f.id === activeFolder) : folders;
 
 	// --- JSX ---
 	return (
@@ -113,7 +114,7 @@ function App() {
 							</button>
 							<button
 								className="button button-warning !border-l-0 !rounded-tl-none !rounded-bl-none !bg-yellow-800/80"
-								onClick={() => { setShowFolders(!showFolders); }}>
+								onClick={() => { setShowFolders(!showFolders); setActiveFolder(''); }}>
 								<i className='fa fa-eye'></i>
 							</button>
 						</div>
@@ -334,10 +335,12 @@ function App() {
 						<button className="button button-secondary" onClick={() => { setActiveFolder(''); setClipboardFolder("") }}>
 							All
 						</button>
-						{folders.map((folder, index) => (
+						{folders.map((folder) => (
 							<div key={folder.id} className="flex gap-1">
 								<div className='flex gap-1'>
-									<button className={`button ${activeFolder === folder.id ? 'button-success' : 'button-warning'}`} onClick={() => { !openEditFolder && setActiveFolder(folder.id); setClipboardFolder(folder.id) }}>
+									<button
+										className={`button ${activeFolder === folder.id ? 'button-success' : 'button-warning'}`}
+										onClick={() => { !openEditFolder && setActiveFolder(folder.id); setClipboardFolder(folder.id) }}>
 										<>{folder.name}</>
 									</button>
 									{editFolder &&
@@ -404,47 +407,53 @@ function App() {
 							)}
 
 							{showFolders && (
-								folders.map((folder) => (
-									<div key={folder.id} className='gap-2'>
-										<div className='border-2 border-zinc-800 rounded-tr-2xl gap-2 bg-yellow-900 h-fit w-full my-2'>
-											<p className='text-md px-2 m-0 text-zinc-200 font-bold'>{folder.name}</p>
+								visibleFolders.map((folder) => (
+									<div key={folder.id}>
+										<div onClick={() => setActiveFolder(folder.id)} className='rounded-tr-2xl gap-2 bg-yellow-900/20 h-fit w-fit mt-4'>
+											<p className='text-md px-2 m-0 text-zinc-400 font-bold'>{folder.name}, #{entries.filter(e => e.folder_id === folder.id).length}</p>
 										</div>
+										<div key={folder.id} className='gap-2 bg-gradient-to-b from-yellow-900/20 to-transparent p-2 rounded-tr-2xl'>
 
-										<div className='grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2'>
-											{entries && displayedEntries
-												.filter(e => e.folder_id === folder.id)
-												.map((entry) => (
-													<motion.div
-														className='flex flex-col'
-														initial={{ scale: 1, rotate: 0 }}
-														exit={{ scale: 0, rotate: 180 }}
-														transition={{ duration: 0.2 }}
-														layout
-														key={entry.id}>
-														<Entry entry={entry} />
-													</motion.div>
-												))}
+											<div className='grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2'>
+												{entries && displayedEntries
+													.filter(e => e.folder_id === folder.id)
+													.sort((a, b) => Number(b.pinned) - Number(a.pinned))
+													.map((entry) => (
+														<motion.div
+															className='flex flex-col'
+															initial={{ scale: 1, rotate: 0 }}
+															exit={{ scale: 0, rotate: 180 }}
+															transition={{ duration: 0.2 }}
+															layout
+															key={entry.id}>
+															<Entry entry={entry} />
+														</motion.div>
+													))}
+												{displayedEntries.filter(e => e.folder_id === folder.id).length === 0 && <p className='text-zinc-500'>No clipboards in this folder.</p>}
+											</div>
 										</div>
 									</div>
 								))
 							)}
 
-							{!showFolders && (
+							{!showFolders &&
 								<div className="grid grid-cols-[repeat(auto-fill,_minmax(300px,_1fr))] gap-2">
-									{entries && displayedEntries.map((entry) => (
-										<motion.div
-											className="flex flex-col"
-											initial={{ scale: 1, rotate: 0 }}
-											exit={{ scale: 0, rotate: 180 }}
-											transition={{ duration: 0.2 }}
-											layout
-											key={entry.id}
-										>
-											<Entry entry={entry} />
-										</motion.div>
-									))}
+									{entries && displayedEntries
+										.sort((a, b) => Number(b.pinned) - Number(a.pinned))
+										.map((entry) => (
+											<motion.div
+												className="flex flex-col"
+												initial={{ scale: 1, rotate: 0 }}
+												exit={{ scale: 0, rotate: 180 }}
+												transition={{ duration: 0.2 }}
+												layout
+												key={entry.id}
+											>
+												<Entry entry={entry} />
+											</motion.div>
+										))}
 								</div>
-							)}
+							}
 
 						</AnimatePresence>
 					</motion.div>

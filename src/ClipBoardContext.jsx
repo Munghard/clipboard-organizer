@@ -145,6 +145,23 @@ export function ClipboardProvider({ children }) {
 		setClipboardFolder('');
 	};
 
+	const togglePinEntry = async (id) => {
+		// 1. Update only pinned  in local state
+		setEntries(entries.map(e =>
+			e.id === id ? { ...e, pinned: !e.pinned } : e
+		));
+
+		const entry = entries.find(e => e.id === id);
+		const newValue = entry ? !entry.pinned : true; // default to true if not found
+
+		// 2. Update entry content
+		const { error } = await supabase
+			.from('entries')
+			.update({ pinned: newValue })
+			.eq('id', id);
+		if (error) console.error('Error updating pinned entry:', error);
+	}
+
 	// Edit an entry
 	const editEntryContent = async (id, newContent) => {
 		// 1. Update only entry_tags in local state
@@ -157,7 +174,7 @@ export function ClipboardProvider({ children }) {
 			.from('entries')
 			.update({ content: newContent })
 			.eq('id', id);
-		if (error) console.error('Error updating entry:', error);
+		if (error) console.error('Error updating content entry:', error);
 
 	};
 
@@ -312,7 +329,7 @@ export function ClipboardProvider({ children }) {
 			handleClick, handleFileChange,
 			fileInputRef,
 			SelectTag, SelectedTags,
-			HandleChangeFolder,
+			HandleChangeFolder, togglePinEntry
 		}}>
 			{children}
 		</ClipboardContext.Provider>

@@ -2,10 +2,10 @@ import { useContext } from "react";
 import { TagsContext } from "./TagsContext";
 import { ClipboardContext } from "./ClipBoardContext";
 
-const TagSelector = ({entry}) => {
+const TagSelector = ({ entry }) => {
 
-    const {tags,AddTag} = useContext(TagsContext);
-    const {SelectTag,SelectedTags} = useContext(ClipboardContext);
+    const { tags, AddTag } = useContext(TagsContext);
+    const { SelectTag, SelectedTags } = useContext(ClipboardContext);
 
     const selectedTags = SelectedTags(entry.id);
 
@@ -17,7 +17,7 @@ const TagSelector = ({entry}) => {
     };
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 border-zinc-700 border-1 p-2 rounded-md mt-2">
             <input type="text" placeholder="New tag" onKeyDown={handleSelect} />
 
             <div className="flex flex-wrap gap-1">
@@ -28,7 +28,7 @@ const TagSelector = ({entry}) => {
                         <button
                             key={tag.id}
                             className={`${isSelected ? "button-success" : "button-tags"} button`}
-                            onClick={() => SelectTag(tag,entry)}
+                            onClick={() => SelectTag(tag, entry)}
                         >
                             {tag.name}
                         </button>
