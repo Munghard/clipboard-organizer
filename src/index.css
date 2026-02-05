@@ -1,6 +1,7 @@
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 
 @import "tailwindcss";
+@plugin "@toolwind/corner-shape";
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -9,7 +10,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  
+
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,7 +21,7 @@
 
 
 .button {
-  @apply text-white rounded-sm px-3 py-2 font-semibold transition-transform duration-150 ease-in-out;
+  @apply text-white rounded-md px-3 py-2 font-semibold transition-transform duration-150 ease-in-out;
 }
 
 /* variants */

@@ -80,7 +80,7 @@ const Entry = ({
             </div>}
             <motion.div
                 id="entry"
-                className={`p-2 dark:bg-zinc-950 light:bg-zinc-100 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 rounded-xl shadow-md shadow-black place-content-between
+                className={`p-2 dark:bg-zinc-950 light:bg-zinc-100 flex flex-col h-auto border-zinc-800 hover:border-zinc-500 border-2 shadow-md shadow-black place-content-between rounded-xl
                     ${showBlowUp ?
                         "absolute h-75 z-999 left-1/2 top-1/2 -translate-1/2 w-fit " :
                         "relative min-w-32 min-h-50 max-w-lg z-auto"}
@@ -101,7 +101,7 @@ const Entry = ({
                         <motion.div
                             initial={{ scaleY: 0 }}
                             animate={{ scaleY: 1 }}
-                            className="flex gap-2 place-content-between origin-top bg-zinc-800 rounded-md  inset-x-2 mb-5">
+                            className="flex gap-2 place-content-between origin-top bg-zinc-800 rounded-md inset-x-2 mb-5">
                             <button className="btn btn-sm close" title="Pin" onClick={async () => { await togglePinEntry(entry.id) }}>
                                 <i className={`fa fa-thumbtack ${entry.pinned ? 'text-white' : 'text-gray-500'}`}></i>
                             </button>

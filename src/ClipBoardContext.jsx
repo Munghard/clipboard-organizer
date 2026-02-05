@@ -2,11 +2,14 @@
 import { createContext, useState, useContext, useEffect, useRef } from "react";
 import { supabase } from "./supabaseClient";
 import { UserContext } from "./UserContext";
+import { useQuery } from "@tanstack/react-query";
 
 
 export const ClipboardContext = createContext();
 
 export function ClipboardProvider({ children }) {
+
+	// const { data: entries, isLoading, error } = useEntries();
 	const [entries, setEntries] = useState([]);
 	// CLIPBOARD
 	const [clipboardData, setClipboardData] = useState('');
@@ -122,24 +125,23 @@ export function ClipboardProvider({ children }) {
 			console.log("Not logged in.")
 			return;
 		}
-
+		// create new entry object
 		const newEntry = {
 			content: text,
 			folder_id: clipboardFolder || null,
 			user_id: userId,
 		};
-
+		// insert into supabase
 		const { data, error } = await supabase
 			.from('entries')
 			.insert(newEntry)
 			.select();
-
+		// error handling
 		if (error) {
 			console.error("shit the bed:", error);
 			return;
 		}
-
-
+		// update state
 		setEntries(prevEntries => [data[0], ...prevEntries]);
 		setClipboardData('');
 		setClipboardFolder('');
@@ -289,6 +291,23 @@ export function ClipboardProvider({ children }) {
 		localStorage.setItem(id, JSON.stringify(updatedEntry));
 	};
 
+	//tanstack-query version, requires alot of rewiring
+	// function useEntries() {
+	// 	if(userId == null) return;
+	// 	return useQuery({
+	// 		queryKey: ['entries', userId],
+	// 		queryFn: async () => {
+	// 			const { data, error } = await supabase
+	// 				.from('entries')
+	// 				.select('*, entry_tags(tags(id,name))')
+	// 				.eq('user_id', userId)
+	// 				.order('created_at', { ascending: false });
+
+	// 			if (error) throw new Error(error.message);
+	// 			return data;
+	// 		}
+	// 	});
+	// }
 
 	useEffect(() => {
 		const fetchData = async () => {

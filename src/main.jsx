@@ -7,17 +7,22 @@ import { ClipboardProvider } from './ClipBoardContext.jsx';
 import { FoldersProvider } from './FoldersContext.jsx';
 import { TagsProvider } from './TagsContext.jsx';
 import { UserProvider } from './UserContext.jsx';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <UserProvider>
-      <ClipboardProvider>
-        <FoldersProvider>
-          <TagsProvider>
-            <App />
-          </TagsProvider>
-        </FoldersProvider>
-      </ClipboardProvider>
-    </UserProvider>
+    <QueryClientProvider client={queryClient}>
+      <UserProvider>
+        <ClipboardProvider>
+          <FoldersProvider>
+            <TagsProvider>
+              <App />
+            </TagsProvider>
+          </FoldersProvider>
+        </ClipboardProvider>
+      </UserProvider>
+    </QueryClientProvider>
   </StrictMode>,
 )
