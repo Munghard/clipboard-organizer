@@ -33,6 +33,7 @@ function App() {
 
 	// this has to be above useEffect because its used in the dependency array to make the override work, it reruns when newclipboardvisible changes
 	const [newClipboardVisible, setNewClipboardVisible] = useState(false);
+	const [newClipboardPinned, setNewClipboardPinned] = useState(false);
 
 	const handleSignOut = () => {
 		signOut();
@@ -81,7 +82,7 @@ function App() {
 			<motion.div
 				layout
 				transition={{ duration: 0.6, type: "spring" }}
-				className='bg-[rgba(10,10,10,1)] w-full -z-50 p-3 rounded-xl border-2 border-zinc-800 mb-3'
+				className='w-full -z-50 p-3  mb-3'
 			>
 				{/* {!userId && signInWithGoogle()}  */}
 				<div className='flex  mb-2'>
@@ -219,7 +220,13 @@ function App() {
 								</option>
 							))}
 						</select>
-						<button className="button button-success ms-2" onClick={() => { addEntry(clipboardData); setNewClipboardVisible(false); }}>
+
+						<button className="btn btn-sm close" title="Pinned" onClick={() => setNewClipboardPinned(!newClipboardPinned)}>
+							<i className={`fa fa-thumbtack ${newClipboardPinned ? 'text-white' : 'text-gray-500'}`}></i>
+						</button>
+
+
+						<button className="button button-success ms-2" onClick={() => { addEntry(clipboardData, newClipboardPinned); setNewClipboardVisible(false); setNewClipboardPinned(false) }}>
 							<i className='fa fa-save'></i> Save
 						</button>
 					</div>

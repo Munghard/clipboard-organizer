@@ -119,7 +119,7 @@ export function ClipboardProvider({ children }) {
 
 
 	// Add a new entry
-	const addEntry = async (text) => {
+	const addEntry = async (text, pinned) => {
 
 		if (userId == "") {
 			console.log("Not logged in.")
@@ -130,6 +130,7 @@ export function ClipboardProvider({ children }) {
 			content: text,
 			folder_id: clipboardFolder || null,
 			user_id: userId,
+			pinned: pinned,
 		};
 		// insert into supabase
 		const { data, error } = await supabase
