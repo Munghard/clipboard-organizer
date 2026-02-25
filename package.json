@@ -10,11 +10,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -b gh-pages -r https://github.com/Munghard/clipboard-organizer.git"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.0.0",
-    "@supabase/supabase-js": "^2.76.1",
+    "@supabase/supabase-js": "^2.97.0",
     "@tailwindcss/vite": "^4.1.14",
     "@tanstack/react-query": "^5.90.11",
     "@toolwind/corner-shape": "^0.0.8-3",
